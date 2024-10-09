@@ -1,11 +1,13 @@
 import React, { useState } from "react";
-import { View, Text, Image, Button } from "react-native";
+import { View, Text, Button } from "react-native";
 import * as Audio from "expo-av";
+import { useLocalSearchParams, useRouter } from "expo-router";
 
-const QuizScreen = ({ route, navigation }) => {
-  const { name, age } = route.params;
+export default function QuizScreen() {
   const [recording, setRecording] = useState(null);
   const [recordingUri, setRecordingUri] = useState(null);
+  const router = useRouter();
+  const { name, age } = useLocalSearchParams();
 
   const startRecording = async () => {
     try {
@@ -16,10 +18,10 @@ const QuizScreen = ({ route, navigation }) => {
         );
         setRecording(recording);
       } else {
-        alert("需要麦克风权限");
+        alert("请允许录音权限");
       }
     } catch (err) {
-      console.error("录音失败", err);
+      console.log("录音失败", err);
     }
   };
 
@@ -27,29 +29,25 @@ const QuizScreen = ({ route, navigation }) => {
     await recording.stopAndUnloadAsync();
     const uri = recording.getURI();
     setRecordingUri(uri);
-    serRecording(null);
+    setRecording(null);
     console.log("录音文件保存在:", uri);
   };
 
-  const handleSubmit = () => {
+  const handleNext = () => {
     if (recordingUri) {
-      navigation.navigate("ResultScreen", { name, age, recordingUri });
+      router.push({ pathname: "/result", params: { name, age, recordingUri } });
     } else {
-      alert("请先录音");
+      alert("请录音");
     }
   };
 
   return (
     <View style={{ padding: 20 }}>
-      <Text>题目</Text>
-      <Image source={{ uri: "待定地址" }} style={{ width: 300, height: 300 }} />
-
       <Button
         title={recording ? "停止录音" : "开始录音"}
         onPress={recording ? stopRecording : startRecording}
       />
-
-      <Button title="提交录音" onPress={handleSubmit} />
+      <Button title="提交录音" onPress={handleNext} />
     </View>
   );
-};
+}
