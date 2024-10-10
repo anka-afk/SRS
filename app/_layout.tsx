@@ -11,6 +11,9 @@ import "react-native-reanimated";
 
 import { useColorScheme } from "@/hooks/useColorScheme";
 
+import "bootstrap/dist/css/bootstrap.min.css";
+import "./userInfo.css";
+
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
@@ -36,6 +39,7 @@ export default function RootLayout() {
         <Stack.Screen name="index" options={{ title: "首页" }} />
         <Stack.Screen name="userInfo" options={{ title: "用户信息" }} />
         <Stack.Screen name="quiz" options={{ title: "测验" }} />
+        <Stack.Screen name="AddQuestion" options={{ title: "添加问题" }} />
       </Stack>
     </ThemeProvider>
   );
