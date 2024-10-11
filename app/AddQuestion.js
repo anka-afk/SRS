@@ -4,6 +4,7 @@ import axios from "axios";
 export default function AddQuestion() {
   const [text, setText] = useState("");
   const [description, setDescription] = useState("");
+  const [correctAnswer, setCorrectAnswer] = useState(""); // 新增字段
   const [mediaFiles, setMediaFiles] = useState([]);
   const [orderNumber, setOrderNumber] = useState("");
   const [showSpectrum, setShowSpectrum] = useState(false);
@@ -24,6 +25,7 @@ export default function AddQuestion() {
     const formData = new FormData();
     formData.append("text", text);
     formData.append("description", description);
+    formData.append("correct_answer", correctAnswer); // 新增字段
     formData.append("order_number", parseInt(orderNumber, 10));
     formData.append("show_spectrum", showSpectrum);
     Array.from(mediaFiles).forEach((file) => {
@@ -41,6 +43,7 @@ export default function AddQuestion() {
       setMessage(response.data.message);
       setText("");
       setDescription("");
+      setCorrectAnswer(""); // 清空答案
       setOrderNumber("");
       setShowSpectrum(false);
       setMediaFiles([]);
@@ -69,6 +72,15 @@ export default function AddQuestion() {
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
+          />
+        </label>
+        <label>
+          正确答案:
+          <input
+            type="text"
+            value={correctAnswer}
+            onChange={(e) => setCorrectAnswer(e.target.value)} // 新增答案输入框
+            required
           />
         </label>
         <label>

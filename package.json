@@ -15,6 +15,7 @@
     "preset": "jest-expo"
   },
   "dependencies": {
+    "@azure/openai": "^2.0.0-beta.2",
     "@expo/vector-icons": "^14.0.2",
     "@react-navigation/native": "^6.1.18",
     "@react-navigation/stack": "^6.4.1",
@@ -30,6 +31,8 @@
     "expo-status-bar": "~1.12.1",
     "expo-system-ui": "~3.0.7",
     "expo-web-browser": "~13.0.3",
+    "express": "^4.21.1",
+    "multer": "^1.4.5-lts.1",
     "react": "18.2.0",
     "react-bootstrap": "^2.10.5",
     "react-dom": "18.2.0",
