@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { View, Text, Button, Image, Platform } from "react-native";
+import { Video } from "expo-av";
+import * as Audio from "expo-av";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import axios from "axios";
 import "./quiz.css";
@@ -10,15 +12,13 @@ export default function QuizScreen() {
   const [recording, setRecording] = useState(null);
   const [recordingUri, setRecordingUri] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [transcription, setTranscription] = useState(""); // 保存转写结果
-  const [analyser, setAnalyser] = useState(null);
-  const [audioContext, setAudioContext] = useState(null);
-  const canvasRef = useRef(null);
+  const [analyser, setAnalyser] = useState(null); // 用于音频分析
+  const [audioContext, setAudioContext] = useState(null); // 音频上下文
+  const canvasRef = useRef(null); // 频谱图 Canvas
 
   const router = useRouter();
   const { name, age } = useLocalSearchParams();
 
-  // 获取题目
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
@@ -38,7 +38,6 @@ export default function QuizScreen() {
     fetchQuestions();
   }, []);
 
-  // 开始录音
   const startRecording = async () => {
     try {
       if (Platform.OS === "web") {
@@ -46,6 +45,7 @@ export default function QuizScreen() {
           audio: true,
         });
 
+        // 创建AudioContext和AnalyserNode
         const audioCtx = new (window.AudioContext ||
           window.webkitAudioContext)();
         const analyserNode = audioCtx.createAnalyser();
@@ -72,21 +72,20 @@ export default function QuizScreen() {
     }
   };
 
-  // 停止录音
   const stopRecording = async () => {
     try {
       if (Platform.OS === "web" && recording) {
         recording.stop();
-        audioContext.close();
+        audioContext.close(); // 停止音频上下文
         setRecording(null);
-        setAnalyser(null);
+        setAnalyser(null); // 停止分析
       }
     } catch (error) {
       console.error("停止录音失败:", error);
     }
   };
 
-  // 频谱图绘制
+  // 画频谱图的函数
   const drawSpectrum = (analyserNode) => {
     const canvas = canvasRef.current;
     const canvasCtx = canvas.getContext("2d");
@@ -121,46 +120,51 @@ export default function QuizScreen() {
     draw();
   };
 
-  // 处理下一题逻辑并上传录音
   const handleNext = async () => {
     if (recordingUri) {
       try {
         const currentQuestion = questions[currentQuestionIndex];
-
-        const response = await fetch(recordingUri);
-        const audioBlob = await response.blob();
-
-        // 将音频文件上传到后端
         const formData = new FormData();
-        formData.append("file", audioBlob, "recording.wav"); // 指定文件名
+        formData.append("user_id", name);
         formData.append("question_id", currentQuestion.question_id);
 
-        const result = await axios.post(
-          "http://localhost:5000/api/transcribe",
-          formData,
-          {
-            headers: {
-              "Content-Type": "multipart/form-data",
-            },
-          }
-        );
-
-        const transcript = result.data.text;
-        setTranscription(transcript); // 保存转写结果
-        console.log("语音识别结果:", transcript);
-
-        if (transcript && transcript.includes(currentQuestion.correct_answer)) {
-          alert("识别成功，继续下一题！");
-          if (currentQuestionIndex + 1 < questions.length) {
-            setCurrentQuestionIndex(currentQuestionIndex + 1);
-          } else {
-            router.push({ pathname: "/result", params: { name, age } });
-          }
+        // 检查平台并处理录音文件
+        if (Platform.OS === "web") {
+          // 获取 Blob 并上传
+          const response = await fetch(recordingUri);
+          const blob = await response.blob();
+          formData.append(
+            "recording",
+            blob,
+            `${currentQuestion.question_id}-${Date.now()}.webm` // 确保是 webm 格式
+          );
         } else {
-          alert("识别内容不匹配正确答案，请重新录制！");
+          // 对于移动端，使用适当的文件格式和 MIME 类型
+          formData.append("recording", {
+            uri: recordingUri,
+            name: `${currentQuestion.question_id}-${Date.now()}.m4a`, // 确保是 m4a 格式
+            type: "audio/m4a", // 对应的 MIME 类型
+          });
+        }
+
+        // 上传文件到后端
+        await axios.post("http://localhost:5000/api/recordings", formData, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        });
+
+        // 上传成功后，清除录音并切换到下一个问题
+        setRecordingUri(null);
+
+        if (currentQuestionIndex + 1 < questions.length) {
+          setCurrentQuestionIndex(currentQuestionIndex + 1);
+        } else {
+          router.push({ pathname: "/result", params: { name, age } });
         }
       } catch (error) {
-        console.error("提交录音失败:", error);
+        console.error("录音提交失败:", error);
+        alert("录音提交失败，请稍后再试。");
       }
     } else {
       alert("请录音");
@@ -209,6 +213,7 @@ export default function QuizScreen() {
         </div>
       </div>
 
+      {/* 新增频谱图显示 */}
       <canvas
         ref={canvasRef}
         width="500"
@@ -235,13 +240,6 @@ export default function QuizScreen() {
       <p className="progressText">
         当前题目 {currentQuestionIndex + 1} / {questions.length}
       </p>
-
-      {/* 显示转写结果 */}
-      {transcription && (
-        <div className="transcriptionResult">
-          <p>转写结果：{transcription}</p>
-        </div>
-      )}
     </div>
   );
 }
